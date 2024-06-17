@@ -4,15 +4,23 @@ dotenv.config();
 
 
 const authenticateToken = (req, res, next) => {
-    const token = req.headers['authorization'];
-    if (!token) return res.sendStatus(401);
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) {
+        return res.status(401).json({ message: 'Acceso denegado. Token no proporcionado.' });
+    }
 
-    jwt.verify(token, SECRET_KEY, (error, user) => {
-        if (error) return res.sendStatus(403);
+    jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
+        if (err) {
+            return res.status(403).json({ message: 'Acceso denegado. Token no válido.' });
+        }
         req.user = user;
         next();
     });
 };
+
+
+
 
 module.exports = {
     authenticateToken

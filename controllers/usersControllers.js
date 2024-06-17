@@ -28,7 +28,6 @@ const login = async (req, res) => {
                 } else {
                     const user = results[0];
                     const passwordCheck = await bcrypt.compare(password, user.password);
-                    console.log(passwordCheck);
                     if (!passwordCheck) {
                         return res.status(401).json({ mensaje: 'Credenciales no válidas2' });
                     } else {
@@ -66,6 +65,18 @@ const Register = async (req, res) => {
         res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
     }
 };
+
+const cartDelete = (req, res) => {
+    const id = req.params.id;
+    connection.query("DELETE FROM cart WHERE id_cart = ?", [id], 
+        (error, results) => {
+            if (error)
+                throw error;
+            res.status(201).json({ "Carrito eliminado": results.affectedRows });
+        });
+}
+
+
 
 // const alumnoDelete = (req, res) => {
 //     const id = req.params.id;
