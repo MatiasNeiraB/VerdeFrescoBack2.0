@@ -20,7 +20,7 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
         const respuesta = await new Promise((resolve, reject) => {
-            connection.query("SELECT * FROM users WHERE email = ?", [email], async (error, results) => {
+            connection.query("SELECT u.id,  u.name, u.surName , u.email, u.password, r.name_rol AS name_role FROM users u JOIN users_roles ur ON u.id = ur.user_id JOIN roles r ON ur.rol_id = r.id_rol WHERE u.email = ?;", [email], async (error, results) => {
                 if (error) {
                     console.log(error);
                 } else if (!results) {
@@ -33,7 +33,7 @@ const login = async (req, res) => {
                     } else {
 
                         const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: '1h' });
-                        res.status(200).json({ ok: true, token: token });
+                        res.status(200).json({ ok: true, token: token, nameUser: user.name, surNameUser: user.surName, rol: user.name_role, });
                     }
                 }
             });
@@ -45,30 +45,48 @@ const login = async (req, res) => {
 }
 
 
-const Register = async (req, res) => {
+const register = async (req, res) => {
     try {
-        const { id, name, surName, userName, email, password, cases, orders, cart, province, address } = req.body;
+        const { name, surName, userName, email, password } = req.body;
 
         const hashPassword = await bcrypt.hash(password, saltRounds);
 
-        connection.query("INSERT INTO users (id, name, surName, userName, email, password, cases, orders, cart, province, address) VALUES (?,?,?,?,?,?,?,?,?,?,?);",
-            [id, name, surName, userName, email, hashPassword, cases, orders, cart, province, address], async (error, results) => {
+        connection.query(
+            "INSERT INTO users (name, surName, userName, email, password) VALUES (?,?,?,?,?);",
+            [name, surName, userName, email, hashPassword],
+            async (error, results) => {
                 if (error) {
                     console.log(error);
                     res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
                 } else {
-                    res.status(201).json({ mensaje: 'Usuario añadido correctamente', affectedRows: results.affectedRows });
+                    const userId = results.insertId;
+                    connection.query(
+                        "SELECT * FROM users WHERE id = ?;",
+                        [userId],
+                        async (error, results) => {
+                            if (error) {
+                                console.log(error);
+                                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+                            } else {
+                                const user = results[0];
+                                const token = jwt.sign({ id: user.id }, process.env.SECRET_KEY, { expiresIn: '1h' });
+                                res.status(201).json({ ok: true, mensaje: 'Usuario añadido correctamente', affectedRows: results.affectedRows, token: token, nameUser: user.name, surNameUser: user.surName });
+                            }
+                        }
+                    );
                 }
-            });
+            }
+        );
     } catch (error) {
         console.error('Error al registrar usuario:', error);
         res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
     }
 };
 
+
 const cartDelete = (req, res) => {
     const id = req.params.id;
-    connection.query("DELETE FROM cart WHERE id_cart = ?", [id], 
+    connection.query("DELETE FROM cart WHERE id_cart = ?", [id],
         (error, results) => {
             if (error)
                 throw error;
@@ -105,6 +123,6 @@ const cartDelete = (req, res) => {
 module.exports = {
     app,
     getUser,
-    Register,
+    register,
     login
 };
