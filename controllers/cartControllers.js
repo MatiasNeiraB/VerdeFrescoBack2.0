@@ -16,8 +16,6 @@ const getCart = (req, res) => {
 };
 
 
-
-
 const getCarts = (req, res) => {
     connection.query("SELECT u.name, u.surName, c.id_cart, c.date, c.status_cart, SUM(p.price * pc.quantity) AS totalOrder FROM users u JOIN cart c ON u.id = c.user_id JOIN product_cart pc ON c.id_cart = pc.cart_id JOIN products p ON pc.product_id = p.id;", async (error, results) => {
         if (error)

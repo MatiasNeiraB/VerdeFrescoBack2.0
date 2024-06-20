@@ -14,6 +14,25 @@ const getProducts = (request, response) => {
         });
 };
 
+const getProductsAdmin = (request, response) => {
+    connection.query("SELECT * FROM products;",
+        (error, results) => {
+            if (error)
+                throw error;
+            response.status(200).json(results);
+        });
+};
+
+const getProductAdmin = (req, response) => {
+    const product_id = req.params.product_id;
+    connection.query("SELECT * FROM products WHERE id = ?", [product_id], async (error, results) => {
+        if (error)
+            throw error;
+        response.status(200).json(results);
+    })
+};
+
+
 const addCart = async (req, res) => {
     try {
         const clientId = req.user;
@@ -40,7 +59,15 @@ const addCart = async (req, res) => {
                                         res.status(201).json({ mensaje: 'Producto añadido correctamente', affectedRows: results.affectedRows });
                                     }
                                 });
-                        }
+                        } const productDinamico = document.getElementById('name_product');
+                        const div = document.createElement('div');
+                        div.innerHTML = `
+                            <div>
+                                <label for="recipient-name"  class="col-form-label">Nombre:</label>
+                                <input type="text" class="form-control" value="${product.name}" id="recipient-name">
+                            </div>
+                        `;
+                        productDinamico.appendChild(div);
                     });
             } else {
                 console.log("Carrito existente");
@@ -65,7 +92,9 @@ const addCart = async (req, res) => {
 module.exports = {
     app,
     getProducts,
-    addCart
+    addCart,
+    getProductsAdmin,
+    getProductAdmin,
 };
 
 
