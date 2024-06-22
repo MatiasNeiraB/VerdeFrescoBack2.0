@@ -89,12 +89,33 @@ const addCart = async (req, res) => {
     }
 };
 
+const putProduct = async (req, res) => {
+    try {
+        const product_id = req.params.product_id;
+        const {name, descriptions, price, img} = req.body;
+        connection.query("UPDATE products SET name = ?, descriptions = ?, price = ?, img = ? WHERE id = ?", [name, descriptions, price, img, product_id], async (error, results) => {
+            if (error) {
+                console.log(error);
+                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+            }else{
+                res.status(201).json({ "Producto actualizado correctamente": result.affectedRows });
+            }
+        });
+    }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+    };
+};
+
+
+
 module.exports = {
     app,
     getProducts,
     addCart,
     getProductsAdmin,
     getProductAdmin,
+    putProduct,
 };
-
 
