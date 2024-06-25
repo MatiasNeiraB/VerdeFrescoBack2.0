@@ -25,7 +25,7 @@ const getProductsAdmin = (request, response) => {
 
 const getProductAdmin = (req, response) => {
     const product_id = req.params.product_id;
-    connection.query("SELECT * FROM products WHERE id = ?", [product_id], async (error, results) => {
+    connection.query("SELECT * FROM products WHERE id = ?", [product_id], (error, results) => {
         if (error)
             throw error;
         response.status(200).json(results);
@@ -38,12 +38,12 @@ const addCart = async (req, res) => {
         const clientId = req.user;
         const id_cliente = clientId.id;
         const { product_id, quantity } = req.body;
-        connection.query("SELECT * FROM cart WHERE user_id = ?", [id_cliente], async (error, results) => {
+        connection.query("SELECT * FROM cart WHERE user_id = ?", [id_cliente], (error, results) => {
             if (error) {
                 console.log(error);
             } else if (results.length === 0) {
                 connection.query("INSERT INTO cart (user_id, status_cart) VALUES (?, 'Creado');",
-                    [id_cliente], async (error, results) => {
+                    [id_cliente], (error, results) => {
                         if (error) {
                             console.log(error);
                             res.status(500).json({ mensaje: 'Error al crear el carrito', error: error.message });
@@ -51,7 +51,7 @@ const addCart = async (req, res) => {
                             res.status(201).json({ mensaje: 'Carrito creado correctamente' });
                             const cartId = results.insertId;
                             connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);",
-                                [cartId, product_id, quantity], async (error, results) => {
+                                [cartId, product_id, quantity], (error, results) => {
                                     if (error) {
                                         console.log(error);
                                         res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
@@ -73,7 +73,7 @@ const addCart = async (req, res) => {
                 console.log("Carrito existente");
                 const cart_id = results[0].id_cart;
                 connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);",
-                    [cart_id, product_id, quantity], async (error, results) => {
+                    [cart_id, product_id, quantity], (error, results) => {
                         if (error) {
                             console.log(error);
                             res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
@@ -92,13 +92,13 @@ const addCart = async (req, res) => {
 const putProduct = async (req, res) => {
     try {
         const product_id = req.params.product_id;
-        const {name, descriptions, price, img} = req.body;
-        connection.query("UPDATE products SET name = ?, descriptions = ?, price = ?, img = ? WHERE id = ?", [name, descriptions, price, img, product_id], async (error, results) => {
+        const { name, descriptions, price, img } = req.body;
+        connection.query("UPDATE products SET name = ?, descriptions = ?, price = ?, img = ? WHERE id = ?", [name, descriptions, price, img, product_id], (error, results) => {
             if (error) {
                 console.log(error);
                 res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
-            }else{
-                res.status(201).json({ "Producto actualizado correctamente": result.affectedRows });
+            } else {
+                res.status(201).json({ "Producto actualizado correctamente": results.affectedRows });
             }
         });
     }
@@ -106,6 +106,29 @@ const putProduct = async (req, res) => {
         console.log(error);
         res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
     };
+};
+
+const deleteProduct = (req, res) => {
+    const product_id = req.params.product_id;
+    connection.query("DELETE FROM products WHERE id = ?", [product_id],
+        (error, results) => {
+            if (error) {
+                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+            }
+            res.status(201).json({ "Producto eliminado con éxito": results.affectedRows });
+        });
+};
+
+
+const addProductAdmin = (req, res) => {
+    const { name, descriptions, price, img } = req.body;
+    connection.query("INSERT INTO products (name, descriptions, price, img) VALUES (?,?,?,?);", [name, descriptions, price, img],
+        (error, results) => {
+            if (error){
+                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+        }
+            res.status(201).json({ "Producto añadido correctamente": results.affectedRows });
+});
 };
 
 
@@ -117,5 +140,7 @@ module.exports = {
     getProductsAdmin,
     getProductAdmin,
     putProduct,
+    deleteProduct,
+    addProductAdmin,
 };
 

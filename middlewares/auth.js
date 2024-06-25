@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const dotenv = require("dotenv");
+const admin = 'ADMINISTRADOR';
 dotenv.config();
 
 
@@ -22,6 +23,19 @@ const authenticateToken = (req, res, next) => {
 
 
 
+const AuthRole = (req, res, next) => {
+    req.user = user;
+    if (req.user.role !== admin) {
+        return res.status(403).json({ message: 'Acceso denegado. No tienes los permisos necesarios.' });
+    }
+    next();
+}
+
+
+
+
+
 module.exports = {
-    authenticateToken
+    authenticateToken,
+    AuthRole
 };
