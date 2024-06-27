@@ -10,7 +10,6 @@ const authenticateToken = (req, res, next) => {
     if (!token) {
         return res.status(401).json({ message: 'Acceso denegado. Token no proporcionado.' });
     }
-
     jwt.verify(token, process.env.SECRET_KEY, (err, user) => {
         if (err) {
             return res.status(403).json({ message: 'Acceso denegado. Token no válido.' });
@@ -20,12 +19,10 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-
-
-
 const AuthRole = (req, res, next) => {
-    req.user = user;
-    if (req.user.role !== admin) {
+    const rolUser = req.user;
+    const rol_user = rolUser.rol;
+    if (rol_user !== admin) {
         return res.status(403).json({ message: 'Acceso denegado. No tienes los permisos necesarios.' });
     }
     next();
