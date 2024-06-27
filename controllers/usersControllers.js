@@ -43,7 +43,7 @@ const login = async (req, res) => {
                     } else {
 
                         const token = jwt.sign({ id: user.id, rol: user.name_rol }, process.env.SECRET_KEY, { expiresIn: '1h' });
-                        res.status(200).json({ ok: true, token: token, nameUser: user.name, surNameUser: user.surName, });
+                        res.status(200).json({ ok: true, token: token, nameUser: user.name, surNameUser: user.surName, rol: user.name_rol});
                     }
                 }
             });
