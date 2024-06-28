@@ -43,7 +43,7 @@ const login = async (req, res) => {
                     } else {
 
                         const token = jwt.sign({ id: user.id, rol: user.name_rol }, process.env.SECRET_KEY, { expiresIn: '1h' });
-                        res.status(200).json({ ok: true, token: token, nameUser: user.name, surNameUser: user.surName, rol: user.name_rol});
+                        res.status(200).json({ ok: true, token: token, nameUser: user.name, surNameUser: user.surName, rol: user.name_rol });
                     }
                 }
             });
@@ -97,6 +97,24 @@ const register = async (req, res) => {
     };
 };
 
+const putPassword = async (req, res) => {
+    try {
+        const {email, password } = req.body;
+        const hashPassword = await bcrypt.hash(password, saltRounds);
+        connection.query("UPDATE users SET password = ? WHERE email = ?",[hashPassword, email], (error, results) => {
+            if (error) {
+                console.log(error);
+                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+            } else {
+                        res.status(201).json({ "Contraseña actualizada correctamente": results.affectedRows });
+                    }
+                });
+            }
+    catch (error) {
+        console.log(error);
+        res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+    };
+};
 
 const putClient = async (req, res) => {
     try {
@@ -127,7 +145,7 @@ const putClient = async (req, res) => {
 
 const addUsers = async (req, res) => {
     try {
-        const { name, surName, userName, email, password, rol} = req.body;
+        const { name, surName, userName, email, password, rol } = req.body;
         const hashPassword = await bcrypt.hash(password, saltRounds);
         connection.query(
             "INSERT INTO users (name, surName, userName, email, password) VALUES (?,?,?,?,?);",
@@ -150,7 +168,8 @@ const addUsers = async (req, res) => {
                                         res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
                                     } else {
                                         res.status(201).json({
-                                            ok: true, mensaje: 'Usuario añadido correctamente', affectedRows: results.affectedRows});
+                                            ok: true, mensaje: 'Usuario añadido correctamente', affectedRows: results.affectedRows
+                                        });
                                     }
                                 });
                             }
@@ -186,4 +205,5 @@ module.exports = {
     putClient,
     addUsers,
     deleteClient,
+    putPassword,
 };
