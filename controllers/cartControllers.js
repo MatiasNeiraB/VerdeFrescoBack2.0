@@ -7,12 +7,13 @@ const { connection } = require("../config/db");
 const getCart = (req, res) => {
     const clientId = req.user;
     const id_cliente = clientId.id;
-    connection.query("SELECT * FROM cart WHERE user_id = ? and status_cart = 'Creado'", [id_cliente], async (error, results) => {
-        if (error)
-            throw error;
-        res.status(200).json(results);
-    });
+    connection.query(
+        `SELECT c.id_cart, pc.product_id, pc.quantity, p.name AS product_name, p.price, p.price * pc.quantity AS subtotal, (SELECT SUM(p2.price * pc2.quantity) FROM product_cart pc2 JOIN products p2 ON pc2.product_id = p2.id WHERE pc2.cart_id = c.id_cart) AS totalOrder FROM cart c JOIN product_cart pc ON c.id_cart = pc.cart_id JOIN products p ON pc.product_id = p.id WHERE c.user_id = ?`
+, [id_cliente], async (error, results) => {if (error) throw error; res.status(200).json(results);
+        }
+    );
 };
+
 
 
 const getCarts = (req, res) => {
@@ -94,7 +95,7 @@ const addCart = async (req, res) => {
                         }
                     });
             } else {
-                console.log("Carrito existente");
+                console.log("Carrito existente, producto agregado correctamente");
                 const cart_id = results[0].id_cart;
                 connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);",
                     [cart_id, product_id, quantity], async (error, results) => {
@@ -113,6 +114,36 @@ const addCart = async (req, res) => {
     }
 };
 
+// Actualizar cantidad en el carrito
+const updateQuantity = (req, res) => {
+    const { productId } = req.params;
+    const { quantity } = req.body;
+    
+    connection.query(
+        'UPDATE product_cart SET quantity = ? WHERE product_id = ?',
+        [quantity, productId],
+        (error, results) => {
+            if (error) throw error;
+            res.status(200).send(`Cantidad del producto ${productId} actualizada a ${quantity}`);
+        }
+    );
+};
+
+// Eliminar producto del carrito
+const deleteProduct = (req, res) => {
+    const { productId } = req.params;
+    
+    connection.query(
+        'DELETE FROM product_cart WHERE product_id = ?',
+        [productId],
+        (error, results) => {
+            if (error) throw error;
+            res.status(200).send(`Producto ${productId} eliminado del carrito`);
+        }
+    );
+};
+
+
 
 
 
@@ -124,4 +155,6 @@ module.exports = {
     getOrder,
     putCart,
     addCart,
-};
+    deleteProduct,
+    updateQuantity,
+}; 
