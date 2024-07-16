@@ -8,8 +8,9 @@ const getCart = (req, res) => {
     const clientId = req.user;
     const id_cliente = clientId.id;
     connection.query(
-        `SELECT c.id_cart, pc.product_id, pc.quantity, p.name AS product_name, p.price, p.price * pc.quantity AS subtotal, (SELECT SUM(p2.price * pc2.quantity) FROM product_cart pc2 JOIN products p2 ON pc2.product_id = p2.id WHERE pc2.cart_id = c.id_cart) AS totalOrder FROM cart c JOIN product_cart pc ON c.id_cart = pc.cart_id JOIN products p ON pc.product_id = p.id WHERE c.user_id = ?`
-, [id_cliente], async (error, results) => {if (error) throw error; res.status(200).json(results);
+        `SELECT c.id_cart, pc.product_id, pc.quantity, p.name AS product_name, p.price, p.price * pc.quantity AS subtotal, (SELECT SUM(p2.price * pc2.quantity) FROM product_cart pc2 JOIN products p2 ON pc2.product_id = p2.id WHERE pc2.cart_id = c.id_cart) AS totalOrder FROM cart c JOIN product_cart pc ON c.id_cart = pc.cart_id JOIN products p ON pc.product_id = p.id WHERE c.user_id = ? AND c.status_cart = "Creado"`
+        , [id_cliente], async (error, results) => {
+            if (error) throw error; res.status(200).json(results);
         }
     );
 };
@@ -49,8 +50,8 @@ const deleteCart = (req, res) => {
 const putCart = async (req, res) => {
     try {
         const orderId = req.params.orderId;
-        const {status_cart } = req.body;
-        connection.query("UPDATE cart SET status_cart = ? WHERE id_cart = ?;", [ status_cart, orderId ], (error, results) => {
+        const { status_cart } = req.body;
+        connection.query("UPDATE cart SET status_cart = ? WHERE id_cart = ?;", [status_cart, orderId], (error, results) => {
             if (error) {
                 console.log(error);
                 res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
@@ -71,41 +72,58 @@ const addCart = async (req, res) => {
         const clientId = req.user;
         const id_cliente = clientId.id;
         const { product_id, quantity } = req.body;
-        connection.query("SELECT * FROM cart WHERE user_id = ?", [id_cliente], async (error, results) => {
+
+        connection.query("SELECT * FROM cart WHERE user_id = ? AND status_cart = 'Creado'", [id_cliente], async (error, results) => {
             if (error) {
                 console.log(error);
-            } else if (results.length === 0) {
-                connection.query("INSERT INTO cart (user_id, status_cart) VALUES (?, 'Creado');",
-                    [id_cliente], async (error, results) => {
-                        if (error) {
-                            console.log(error);
-                            res.status(500).json({ mensaje: 'Error al crear el carrito', error: error.message });
-                        } else {
-                            res.status(201).json({ mensaje: 'Carrito creado correctamente' });
-                            const cartId = results.insertId;
-                            connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);",
-                                [cartId, product_id, quantity], async (error, results) => {
-                                    if (error) {
-                                        console.log(error);
-                                        res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
-                                    } else {
-                                        res.status(201).json({ mensaje: 'Producto añadido correctamente', affectedRows: results.affectedRows });
-                                    }
-                                });
-                        }
-                    });
-            } else {
-                console.log("Carrito existente, producto agregado correctamente");
-                const cart_id = results[0].id_cart;
-                connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);",
-                    [cart_id, product_id, quantity], async (error, results) => {
+                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+            }
+            if (results.length === 0) {
+                connection.query("INSERT INTO cart (user_id, status_cart) VALUES (?, 'Creado');", [id_cliente], (error, results) => {
+                    if (error) {
+                        console.log(error);
+                        res.status(500).json({ mensaje: 'Error al crear el carrito', error: error.message });
+                    }
+
+                    const cartId = results.insertId;
+                    connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);", [cartId, product_id, quantity], (error, results) => {
                         if (error) {
                             console.log(error);
                             res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
-                        } else {
-                            res.status(201).json({ mensaje: 'Producto añadido correctamente', affectedRows: results.affectedRows });
                         }
+
+                        res.status(201).json({ mensaje: 'Carrito y producto añadidos correctamente', affectedRows: results.affectedRows });
                     });
+                });
+            } else {
+                const cart_id = results[0].id_cart;
+
+                connection.query("SELECT * FROM product_cart WHERE cart_id = ? AND product_id = ?", [cart_id, product_id], (error, productResults) => {
+                    if (error) {
+                        console.log(error);
+                        res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+                    }
+
+                    if (productResults.length > 0) {
+                        connection.query("UPDATE product_cart SET quantity = ? WHERE cart_id = ? AND product_id = ?", [quantity, cart_id, product_id], (error, results) => {
+                            if (error) {
+                                console.log(error);
+                                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+                            }
+
+                            res.status(201).json({ mensaje: 'Cantidad de producto actualizada correctamente', affectedRows: results.affectedRows });
+                        });
+                    } else {
+                        connection.query("INSERT INTO product_cart (cart_id, product_id, quantity) VALUES (?,?,?);", [cart_id, product_id, quantity], (error, results) => {
+                            if (error) {
+                                console.log(error);
+                                res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
+                            }
+
+                            res.status(201).json({ mensaje: 'Producto añadido correctamente', affectedRows: results.affectedRows });
+                        });
+                    }
+                });
             }
         });
     } catch (error) {
@@ -118,7 +136,7 @@ const addCart = async (req, res) => {
 const updateQuantity = (req, res) => {
     const { productId } = req.params;
     const { quantity } = req.body;
-    
+
     connection.query(
         'UPDATE product_cart SET quantity = ? WHERE product_id = ?',
         [quantity, productId],
@@ -132,7 +150,7 @@ const updateQuantity = (req, res) => {
 // Eliminar producto del carrito
 const deleteProduct = (req, res) => {
     const { productId } = req.params;
-    
+
     connection.query(
         'DELETE FROM product_cart WHERE product_id = ?',
         [productId],
@@ -143,7 +161,19 @@ const deleteProduct = (req, res) => {
     );
 };
 
+const buyCart = (req, res) => {
+    const clientId = req.user;
+    const id_cliente = clientId.id;
+    connection.query(
+        'UPDATE cart SET status_cart =  "Pendiente" WHERE user_id = ? AND status_cart = "Creado"',
+        [id_cliente],
+        (error, results) => {
+            if (error) throw error;
+            res.status(201).json({ mensaje: 'Carrito finalizado', affectedRows: results.affectedRows });
+        }
+    );
 
+}
 
 
 
@@ -157,4 +187,5 @@ module.exports = {
     addCart,
     deleteProduct,
     updateQuantity,
+    buyCart
 }; 

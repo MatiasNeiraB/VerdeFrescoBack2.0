@@ -63,7 +63,6 @@ const deleteProduct = (req, res) => {
         });
 };
 
-
 const addProductAdmin = (req, res) => {
     const { name, descriptions, price, img } = req.body;
     connection.query("INSERT INTO products (name, descriptions, price, img) VALUES (?,?,?,?);", [name, descriptions, price, img],
@@ -71,7 +70,7 @@ const addProductAdmin = (req, res) => {
             if (error) {
                 res.status(500).json({ mensaje: 'Error en la base de datos', error: error.message });
             }
-            res.status(201).json({ "Producto añadido correctamente": results.affectedRows });
+            res.status(200).json({ "Producto añadido correctamente": results.affectedRows });
         });
 };
 
